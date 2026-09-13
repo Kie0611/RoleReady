@@ -3,18 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev":          "next dev",
-    "build":        "next build",
-    "start":        "next start",
-    "db:generate":  "drizzle-kit generate",
-    "db:migrate":   "drizzle-kit migrate",
-    "db:studio":    "drizzle-kit studio",
-    "db:seed":      "tsx src/lib/db/seed.ts"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/lib/db/seed.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.67",
     "@auth/drizzle-adapter": "^1.11.3",
     "ai": "^7.0.97",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.45.0",
     "next": "16.3.4",
     "next-auth": "^5.0.0-beta.32",
