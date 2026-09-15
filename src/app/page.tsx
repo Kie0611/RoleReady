@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Check, MessageSquareText, Target } from "lucide-react";
+import { BrandMark, Kicker, ScoreBar } from "@/components/ui/role-ready";
 
 export default function HomePage() {
   return (
@@ -136,23 +137,6 @@ export default function HomePage() {
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
-function BrandMark() {
-  return (
-    <Link href="/" className="inline-flex items-center gap-3 font-bold">
-      <span className="grid size-9 place-items-center bg-accent font-mono text-lg text-accent-foreground">R</span>
-      <span>RoleReady</span>
-    </Link>
-  );
-}
-
-function Kicker({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <p className={`font-mono text-[10px] uppercase tracking-widest text-muted-foreground ${className}`}>
-      {children}
-    </p>
-  );
-}
-
 function Stat({ n, label }: { n: string; label: string }) {
   return (
     <div className="bg-card p-4">
@@ -174,20 +158,6 @@ function Chat({ speaker, text, mine = false }: { speaker: string; text: string; 
   );
 }
 
-function ScoreBar({ label, score }: { label: string; score: number }) {
-  const color = score >= 80 ? "bg-success" : score >= 70 ? "bg-info" : "bg-accent";
-  return (
-    <div>
-      <div className="flex justify-between text-sm font-semibold">
-        <span>{label}</span>
-        <span className="font-mono">{score}</span>
-      </div>
-      <div className="mt-2 h-2 bg-secondary">
-        <div className={`h-full origin-left animate-grow ${color}`} style={{ width: `${score}%` }} />
-      </div>
-    </div>
-  );
-}
 
 function Feature({ icon, step, title, text }: {
   icon: React.ReactNode; step: string; title: string; text: string;
