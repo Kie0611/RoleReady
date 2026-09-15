@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, PenLine } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { PageHeader, Kicker } from "@/components/ui/role-ready";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -101,28 +102,6 @@ export default async function DashboardPage() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function PageHeader({ title, eyebrow, action }: {
-  title: string; eyebrow: string; action?: React.ReactNode;
-}) {
-  return (
-    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-2xl font-extrabold">{title}</h1>
-        <span className="font-mono text-[10px] uppercase text-muted-foreground">{eyebrow}</span>
-      </div>
-      {action}
-    </header>
-  );
-}
-
-function Kicker({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <p className={`font-mono text-[10px] uppercase tracking-widest text-muted-foreground ${className}`}>
-      {children}
-    </p>
-  );
-}
 
 function Metric({ label, value, note }: { label: string; value: string; note: string }) {
   return (

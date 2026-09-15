@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'RoleReady',
+  description: 'AI-powered mock interview simulator',
+};
 
 export default async function DashboardLayout({
   children,
