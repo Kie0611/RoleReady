@@ -1,34 +1,44 @@
 "use client";
 
-import { useState } from "react";
 import { createSessionAction } from "@/actions/sessions";
-import { ArrowRight } from "lucide-react";
 
 type InterviewType = "behavioral" | "technical" | "mixed";
 type Difficulty    = "junior"     | "mid"        | "senior";
 
 const INTERVIEW_TYPES: { value: InterviewType; label: string; desc: string }[] = [
   { value: "behavioral", label: "Behavioral", desc: "STAR method, past experience, soft skills" },
-  { value: "technical",  label: "Technical",  desc: "Concepts, code, problem-solving"            },
-  { value: "mixed",      label: "Mixed",      desc: "Both behavioral and technical questions"     },
+  { value: "technical",  label: "Technical",  desc: "Concepts, code, problem-solving"           },
+  { value: "mixed",      label: "Mixed",      desc: "Both behavioral and technical questions"    },
 ];
 
 const DIFFICULTIES: { value: Difficulty; label: string; desc: string }[] = [
-  { value: "junior", label: "Junior",  desc: "0–2 years, fundamentals focus"    },
-  { value: "mid",    label: "Mid",     desc: "2–5 years, independence expected" },
-  { value: "senior", label: "Senior",  desc: "5+ years, system design & leadership" },
+  { value: "junior", label: "Junior", desc: "0–2 years, fundamentals focus"        },
+  { value: "mid",    label: "Mid",    desc: "2–5 years, independence expected"      },
+  { value: "senior", label: "Senior", desc: "5+ years, system design & leadership" },
 ];
 
-export function InterviewSetupForm() {
-  const [interviewType, setInterviewType] = useState<InterviewType>("mixed");
-  const [difficulty,    setDifficulty]    = useState<Difficulty>("junior");
-  const [loading,       setLoading]       = useState(false);
+interface Props {
+  interviewType:         InterviewType;
+  difficulty:            Difficulty;
+  onInterviewTypeChange: (v: InterviewType) => void;
+  onDifficultyChange:    (v: Difficulty)    => void;
+  onRoleChange:          (v: string)        => void;
+  onLoadingChange:       (v: boolean)       => void;
+}
 
+export function InterviewSetupForm({
+  interviewType,
+  difficulty,
+  onInterviewTypeChange,
+  onDifficultyChange,
+  onRoleChange,
+  onLoadingChange,
+}: Props) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoading(true);
+    onLoadingChange(true);
 
-    const form = e.currentTarget;
+    const form           = e.currentTarget;
     const role           = (form.elements.namedItem("role")           as HTMLInputElement).value;
     const company        = (form.elements.namedItem("company")        as HTMLInputElement).value;
     const jobDescription = (form.elements.namedItem("jobDescription") as HTMLTextAreaElement).value;
@@ -37,7 +47,7 @@ export function InterviewSetupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form id="interview-form" onSubmit={handleSubmit} className="space-y-8">
 
       {/* Role */}
       <div className="space-y-2">
@@ -50,6 +60,7 @@ export function InterviewSetupForm() {
           type="text"
           required
           placeholder="e.g. Junior Full-Stack Developer"
+          onChange={(e) => onRoleChange(e.target.value)}
           className="h-11 w-full border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-1"
         />
       </div>
@@ -57,7 +68,8 @@ export function InterviewSetupForm() {
       {/* Company */}
       <div className="space-y-2">
         <label htmlFor="company" className="text-sm font-bold">
-          Company <span className="font-mono text-[10px] font-normal text-muted-foreground">(optional)</span>
+          Company{" "}
+          <span className="font-mono text-[10px] font-normal text-muted-foreground">(optional)</span>
         </label>
         <input
           id="company"
@@ -76,7 +88,7 @@ export function InterviewSetupForm() {
             <button
               key={t.value}
               type="button"
-              onClick={() => setInterviewType(t.value)}
+              onClick={() => onInterviewTypeChange(t.value)}
               className={`border p-3 text-left transition-colors ${
                 interviewType === t.value
                   ? "border-foreground bg-foreground text-background"
@@ -102,7 +114,7 @@ export function InterviewSetupForm() {
             <button
               key={d.value}
               type="button"
-              onClick={() => setDifficulty(d.value)}
+              onClick={() => onDifficultyChange(d.value)}
               className={`border p-3 text-left transition-colors ${
                 difficulty === d.value
                   ? "border-foreground bg-foreground text-background"
@@ -123,7 +135,8 @@ export function InterviewSetupForm() {
       {/* Job description */}
       <div className="space-y-2">
         <label htmlFor="jobDescription" className="text-sm font-bold">
-          Job description <span className="font-mono text-[10px] font-normal text-muted-foreground">(optional but recommended)</span>
+          Job description{" "}
+          <span className="font-mono text-[10px] font-normal text-muted-foreground">(optional but recommended)</span>
         </label>
         <textarea
           id="jobDescription"
@@ -133,17 +146,6 @@ export function InterviewSetupForm() {
           className="w-full border border-input bg-card px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-1 resize-none"
         />
       </div>
-
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="flex h-11 w-full items-center justify-center gap-2 bg-foreground text-sm font-bold text-background hover:opacity-90 transition-opacity disabled:opacity-50"
-      >
-        {loading ? "Starting session…" : (
-          <>Start interview <ArrowRight className="size-4" /></>
-        )}
-      </button>
     </form>
   );
 }

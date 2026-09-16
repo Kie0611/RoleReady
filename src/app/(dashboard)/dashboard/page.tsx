@@ -50,7 +50,7 @@ export default async function DashboardPage() {
           {/* Readiness bar */}
           <section className="border border-border bg-card p-4">
             <div className="flex justify-between">
-              <Kicker>Readiness</Kicker>
+              <Kicker className="text-muted-foreground">Readiness</Kicker>
               <span className="font-mono text-xs font-bold">78 / 100</span>
             </div>
             <div className="mt-4 h-8 bg-secondary">
