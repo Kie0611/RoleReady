@@ -21,7 +21,7 @@ export function Kicker({ children, className = "" }: {
   className?: string;
 }) {
   return (
-    <p className={`font-mono text-[10px] uppercase tracking-widest text-muted-foreground ${className}`}>
+    <p className={`font-mono text-[10px] uppercase tracking-widest ${className}`}>
       {children}
     </p>
   );
