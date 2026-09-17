@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { signIn } from "@/lib/auth";
 import { EmailLoginForm } from "./EmailLoginForm";
+import Image from "next/image";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -13,7 +14,12 @@ export default async function LoginPage() {
       {/* Left panel — dark brand statement */}
       <section className="hidden bg-foreground p-12 text-background lg:flex lg:flex-col">
         <div className="flex items-center gap-3 font-bold">
-          <span className="grid size-9 place-items-center bg-accent font-mono text-lg text-accent-foreground">R</span>
+          <Image
+            src="/icon.png"
+            alt="RoleReady logo"
+            width={35}
+            height={35}
+          />
           <span>RoleReady</span>
         </div>
         <div className="mt-auto max-w-xl">

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function PageHeader({ title, eyebrow, action }: {
@@ -30,7 +31,12 @@ export function Kicker({ children, className = "" }: {
 export function BrandMark() {
   return (
     <Link href="/" className="inline-flex items-center gap-3 font-bold">
-      <span className="grid size-9 place-items-center bg-accent font-mono text-lg text-accent-foreground">R</span>
+      <Image
+        src="/icon_no_bg.png"
+        alt="RoleReady logo"
+        width={35}
+        height={35}
+      />
       <span>RoleReady</span>
     </Link>
   );

@@ -126,9 +126,9 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-border px-5 py-6">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <BrandMark />
-          <p className="font-mono text-[10px] uppercase text-muted-foreground">Prepare deliberately.</p>
+        <div className="mx-auto flex max-w-7xl items-center justify-end">
+          {/* <BrandMark /> */}
+          <p className=" font-mono text-[10px] uppercase text-muted-foreground">Prepare deliberately.</p>
         </div>
       </footer>
     </main>

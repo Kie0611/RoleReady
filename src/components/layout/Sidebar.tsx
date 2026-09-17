@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   Gauge, Plus, FileText, CircleUserRound, Menu, X,
 } from "lucide-react";
+import Image from "next/image";
 
 const navigation = [
   { label: "Dashboard",      href: "/dashboard",      icon: Gauge },
@@ -36,9 +37,14 @@ export function Sidebar({ initials }: { initials: string }) {
             <Link
               href="/dashboard"
               aria-label="RoleReady dashboard"
-              className="grid size-9 place-items-center bg-accent font-mono text-lg font-bold text-accent-foreground"
+              className="grid size-9 place-items-center font-mono text-lg font-bold text-accent-foreground"
             >
-              R
+            <Image
+              src="/icon_no_bg.png"
+              alt="RoleReady logo"
+              width={35}
+              height={35}
+            />
             </Link>
             <button
               className="lg:hidden p-2 hover:bg-secondary transition-colors"
