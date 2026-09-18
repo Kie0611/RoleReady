@@ -232,7 +232,7 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
 
       {/* End dialog */}
       {ending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md border border-border bg-background p-6">
             <h2 className="text-lg font-extrabold">End this interview?</h2>
             <p className="mt-2 text-sm text-muted-foreground">
