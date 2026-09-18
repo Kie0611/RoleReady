@@ -2,36 +2,50 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { signIn } from "next-auth/react";
 
 export function RegisterForm() {
-  const router = useRouter();
-  const [error, setError] = useState("");
+  const router  = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
-    const form = e.currentTarget;
-    const name = (form.elements.namedItem("name") as HTMLInputElement).value;
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const form     = e.currentTarget;
+    const name     = (form.elements.namedItem("name")     as HTMLInputElement).value;
+    const email    = (form.elements.namedItem("email")    as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
     const res = await fetch("/api/register", {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body:    JSON.stringify({ name, email, password }),
     });
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Something went wrong.");
+      toast.error(data.error ?? "Something went wrong.");
       setLoading(false);
       return;
     }
 
-    router.push("/login");
+    toast.success("Account created! Signing you in…");
+
+    // Auto sign in after register
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      toast.error("Account created but couldn't sign in. Please log in manually.");
+      router.push("/login");
+    } else {
+      router.push("/dashboard");
+    }
   }
 
   return (
@@ -70,8 +84,6 @@ export function RegisterForm() {
           className="h-11 w-full border border-input bg-card px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-1"
         />
       </div>
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
 
       <button
         type="submit"

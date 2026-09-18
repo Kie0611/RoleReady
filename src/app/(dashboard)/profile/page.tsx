@@ -2,6 +2,7 @@ import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { PageHeader, Kicker } from "@/components/ui/role-ready";
 import { getSessionsByUser } from "@/lib/db/queries/sessions";
+import { SignOutButton } from "./SignOutButton";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -53,19 +54,7 @@ export default async function ProfilePage() {
         <section className="border border-border bg-card p-6">
           <Kicker>Account</Kicker>
           <div className="mt-4">
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/login" });
-              }}
-            >
-              <button
-                type="submit"
-                className="border border-destructive/40 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                Sign out
-              </button>
-            </form>
+            <SignOutButton />
           </div>
         </section>
       </div>

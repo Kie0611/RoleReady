@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Send, Square } from "lucide-react";
 import { type InterviewSession } from "@/lib/db/schema";
 import { Kicker, PageHeader } from "@/components/ui/role-ready";
+import toast from "react-hot-toast";
 
 const END_PHRASE = "that concludes our interview";
 
@@ -97,6 +98,7 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
   }
 
   async function handleEndInterview() {
+    const toastId = toast.loading("Saving session…");
     await fetch(`/api/sessions/${session.id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -107,6 +109,7 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
         messages,
       }),
     });
+    toast.success("Session saved! Generating scorecard…", { id: toastId });
     router.push(`/sessions/${session.id}`);
   }
 

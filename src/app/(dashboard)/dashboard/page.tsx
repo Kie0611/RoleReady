@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getRecentSessionsByUser } from "@/lib/db/queries/sessions";
 import { Kicker, PageHeader, ScoreBar } from "@/components/ui/role-ready";
 import { type InterviewSession } from "@/lib/db/schema";
+import { LoginSuccessToast } from "./LoginSuccessToast";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -26,99 +27,104 @@ export default async function DashboardPage() {
   const chartSessions = completed.slice(0, 7).reverse();
 
   return (
-    <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Dashboard"
-        eyebrow="RoleReady · overview"
-        action={
-          sessions.some((s) => s.status === "in_progress") ? (
-            <span className="flex items-center gap-2 font-mono text-[10px] uppercase text-destructive">
-              <span className="size-2 bg-destructive" />
-              Session in progress
-            </span>
-          ) : undefined
-        }
-      />
+    <>
+      <LoginSuccessToast />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[340px_1fr]">
+      <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        
+        <PageHeader
+          title="Dashboard"
+          eyebrow="RoleReady · overview"
+          action={
+            sessions.some((s) => s.status === "in_progress") ? (
+              <span className="flex items-center gap-2 font-mono text-[10px] uppercase text-destructive">
+                <span className="size-2 bg-destructive" />
+                Session in progress
+              </span>
+            ) : undefined
+          }
+        />
 
-        {/* Left column */}
-        <div className="space-y-6">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[340px_1fr]">
 
-          {/* Start CTA */}
-          <section className="animate-rise bg-foreground p-5 text-background">
-            <div className="flex items-center justify-between">
-              <Kicker className="text-accent">Start new interview</Kicker>
-              <ArrowRight className="size-4" />
+          {/* Left column */}
+          <div className="space-y-6">
+
+            {/* Start CTA */}
+            <section className="animate-rise bg-foreground p-5 text-background">
+              <div className="flex items-center justify-between">
+                <Kicker className="text-accent">Start new interview</Kicker>
+                <ArrowRight className="size-4" />
+              </div>
+              <h2 className="mt-3 text-lg font-bold">Ready to practice?</h2>
+              <p className="mt-1 text-sm text-background/60">Pick a role and start a session.</p>
+              <Link
+                href="/interview/new"
+                className="mt-5 inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-90 transition-opacity"
+              >
+                Begin interview <ArrowRight className="size-4" />
+              </Link>
+            </section>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-3">
+              <Metric label="Avg score"    value={avgScore  ? `${avgScore}` : "—"} note={`${completed.length} completed`} />
+              <Metric label="Best score"   value={bestScore ? `${bestScore}` : "—"} note="all time" />
+              <Metric label="Total sessions" value={`${sessions.length}`} note="all time" />
+              <Metric label="This week"    value={`${thisWeek}`} note="sessions" />
             </div>
-            <h2 className="mt-3 text-lg font-bold">Ready to practice?</h2>
-            <p className="mt-1 text-sm text-background/60">Pick a role and start a session.</p>
-            <Link
-              href="/interview/new"
-              className="mt-5 inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-90 transition-opacity"
-            >
-              Begin interview <ArrowRight className="size-4" />
-            </Link>
-          </section>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <Metric label="Avg score"    value={avgScore  ? `${avgScore}` : "—"} note={`${completed.length} completed`} />
-            <Metric label="Best score"   value={bestScore ? `${bestScore}` : "—"} note="all time" />
-            <Metric label="Total sessions" value={`${sessions.length}`} note="all time" />
-            <Metric label="This week"    value={`${thisWeek}`} note="sessions" />
+            {/* Readiness */}
+            {avgScore > 0 && (
+              <section className="border border-border bg-card p-4">
+                <div className="flex justify-between">
+                  <Kicker>Readiness</Kicker>
+                  <span className="font-mono text-xs font-bold">{avgScore} / 100</span>
+                </div>
+                <div className="mt-4 h-8 bg-secondary">
+                  <div
+                    className="h-full origin-left animate-grow bg-accent"
+                    style={{ width: `${avgScore}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                  Based on your average score across all completed sessions.
+                </p>
+              </section>
+            )}
           </div>
 
-          {/* Readiness */}
-          {avgScore > 0 && (
-            <section className="border border-border bg-card p-4">
-              <div className="flex justify-between">
-                <Kicker>Readiness</Kicker>
-                <span className="font-mono text-xs font-bold">{avgScore} / 100</span>
+          {/* Right column */}
+          <div className="space-y-6">
+
+            {/* Chart */}
+            {chartSessions.length > 0 && (
+              <ProgressChart sessions={chartSessions} />
+            )}
+
+            {/* Recent sessions */}
+            <section>
+              <div className="flex items-center justify-between pb-2">
+                <h2 className="font-bold">Recent practice</h2>
+                <Link
+                  href="/sessions"
+                  className="font-mono text-[10px] uppercase text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  View all
+                </Link>
               </div>
-              <div className="mt-4 h-8 bg-secondary">
-                <div
-                  className="h-full origin-left animate-grow bg-accent"
-                  style={{ width: `${avgScore}%` }}
-                />
+              <div className="border-t border-border">
+                {sessions.length === 0 ? (
+                  <EmptyState />
+                ) : (
+                  sessions.map((s) => <SessionRow key={s.id} session={s} />)
+                )}
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                Based on your average score across all completed sessions.
-              </p>
             </section>
-          )}
+          </div>
         </div>
-
-        {/* Right column */}
-        <div className="space-y-6">
-
-          {/* Chart */}
-          {chartSessions.length > 0 && (
-            <ProgressChart sessions={chartSessions} />
-          )}
-
-          {/* Recent sessions */}
-          <section>
-            <div className="flex items-center justify-between pb-2">
-              <h2 className="font-bold">Recent practice</h2>
-              <Link
-                href="/sessions"
-                className="font-mono text-[10px] uppercase text-muted-foreground hover:text-foreground transition-colors"
-              >
-                View all
-              </Link>
-            </div>
-            <div className="border-t border-border">
-              {sessions.length === 0 ? (
-                <EmptyState />
-              ) : (
-                sessions.map((s) => <SessionRow key={s.id} session={s} />)
-              )}
-            </div>
-          </section>
-        </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -150,7 +156,7 @@ function ProgressChart({ sessions }: { sessions: InterviewSession[] }) {
           <div
             key={s.id}
             title={`${s.overallScore ?? 0}`}
-            className="flex-1 bg-info/20 transition-colors hover:bg-info"
+            className="flex-1 bg-info transition-colors"
             style={{ height: `${((s.overallScore ?? 0) / max) * 100}%` }}
           />
         ))}
