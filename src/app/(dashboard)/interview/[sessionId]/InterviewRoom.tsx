@@ -11,6 +11,11 @@ import toast from "react-hot-toast";
 
 const END_PHRASE = "that concludes our interview";
 
+const TRIGGER_PHRASES = [
+  "please begin the interview.",
+  "start the interview with a professional greeting and your first question.",
+];
+
 function getMessageText(message: UIMessage): string {
   if (!message.parts) return "";
   return message.parts
@@ -19,25 +24,43 @@ function getMessageText(message: UIMessage): string {
     .join("");
 }
 
-export function InterviewRoom({ session }: { session: InterviewSession }) {
-  const router                          = useRouter();
-  const bottomRef                       = useRef<HTMLDivElement>(null);
-  const hasInitialized                  = useRef(false);
-  const [input,         setInput]       = useState("");
-  const [ending,        setEnding]      = useState(false);
-  const [elapsed,       setElapsed]     = useState(0);
+function isTriggerMessage(message: UIMessage, index: number): boolean {
+  if (index !== 0 || message.role !== "user") return false;
+  const text = getMessageText(message).toLowerCase().trim();
+  return TRIGGER_PHRASES.some((t) => text === t);
+}
+
+interface Props {
+  session:         InterviewSession;
+  initialMessages: any[];
+  initialElapsed:  number;
+}
+
+export function InterviewRoom({ session, initialMessages, initialElapsed }: Props) {
+  const router         = useRouter();
+  const bottomRef      = useRef<HTMLDivElement>(null);
+  const hasInitialized = useRef(false);
+  const hasSeeded      = useRef(false);
+
+  const [input,         setInput]         = useState("");
+  const [ending,        setEnding]        = useState(false);
+  const [elapsed,       setElapsed]       = useState(Math.max(0, initialElapsed));
   const [interviewDone, setInterviewDone] = useState(false);
 
-  const { messages, sendMessage, status } = useChat({
+  const isResuming = initialMessages.length > 0;
+  
+  const messagesRef = useRef<UIMessage[]>([]);
+
+  const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/chat",
+      api:  `${typeof window !== "undefined" ? window.location.origin : ""}/api/chat`,
       body: { sessionId: session.id },
     }),
     onFinish: async ({ message }: { message: UIMessage }) => {
       await fetch(`/api/sessions/${session.id}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ messages: [...messages, message] }),
+        body:    JSON.stringify({ messages: messagesRef.current }),
       });
       if (getMessageText(message).toLowerCase().includes(END_PHRASE)) {
         setInterviewDone(true);
@@ -45,21 +68,38 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
     },
     onError: (error) => {
       console.error("[useChat error]", error);
+      toast.error("Something went wrong. Please try again.");
     },
   });
 
+  // Keep ref in sync
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   const isLoading = status === "streaming" || status === "submitted";
 
-  // Send the first message to kick off the interview
   useEffect(() => {
-    console.log("🔵 effect fired, initialized:", hasInitialized.current);
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    setTimeout(() => {
-      console.log("🟡 about to send");
-      sendMessage({ parts: [{ type: "text", text: "Please begin the interview." }] });
-    }, 800);
+    if (initialMessages.length > 0) {
+      setMessages(
+        initialMessages.map((m: any, i: number) => ({
+          id:    `msg-${i}`,
+          role:  m.role,
+          parts: m.parts ?? [{ type: "text", text: m.content ?? "" }],
+        }))
+      );
+    } else {
+      // New session
+      const t = setTimeout(() => {
+        sendMessage({
+          parts: [{ type: "text", text: "Start the interview with a professional greeting and your first question." }],
+        });
+      }, 500);
+      return () => clearTimeout(t);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -98,6 +138,7 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
   }
 
   async function handleEndInterview() {
+    setEnding(false);
     const toastId = toast.loading("Saving session…");
     await fetch(`/api/sessions/${session.id}`, {
       method:  "PATCH",
@@ -113,12 +154,15 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
     router.push(`/sessions/${session.id}`);
   }
 
-  // Visible messages — hide the invisible trigger
+  // Hide trigger message from view
   const visibleMessages = messages.filter(
-    (m: UIMessage, i: number) => !(i === 0 && m.role === "user" && getMessageText(m) === "Please begin the interview.")
+    (m: UIMessage, i: number) => !isTriggerMessage(m, i)
   );
 
   const hasAIResponse = visibleMessages.some((m: UIMessage) => m.role === "assistant");
+
+  // Disable input while waiting for first AI message on new sessions
+  const inputDisabled = isLoading || interviewDone || (!isResuming && !hasAIResponse);
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-5xl flex-col p-4 sm:p-6 lg:min-h-screen lg:p-8">
@@ -151,7 +195,6 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
       {/* Messages */}
       <section className="flex-1 space-y-6 overflow-auto py-8">
 
-        {/* Loading indicator — until first AI message */}
         {!hasAIResponse && (
           <div className="flex items-center gap-3">
             <div className="h-4 w-1.5 animate-blink bg-foreground" />
@@ -187,7 +230,6 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
           );
         })}
 
-        {/* Interview complete banner */}
         {interviewDone && (
           <div className="border border-accent/40 bg-accent/10 p-5">
             <Kicker className="text-accent">Interview complete</Kicker>
@@ -211,14 +253,18 @@ export function InterviewRoom({ session }: { session: InterviewSession }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isLoading || interviewDone}
+            disabled={inputDisabled}
             rows={4}
-            placeholder="Answer in your own words…"
+            placeholder={
+              !hasAIResponse && !isResuming
+                ? "Waiting for interviewer…"
+                : "Answer in your own words…"
+            }
             className="min-h-24 w-full resize-none border border-input bg-card px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-1 disabled:opacity-50"
           />
           <button
             onClick={handleSend}
-            disabled={isLoading || !input.trim() || interviewDone}
+            disabled={inputDisabled || !input.trim()}
             aria-label="Send answer"
             className="grid size-12 shrink-0 place-items-center bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-40"
           >

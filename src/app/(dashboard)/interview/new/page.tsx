@@ -26,7 +26,7 @@ export default function NewInterviewPage() {
           onRoleChange={setRole}
           onLoadingChange={setLoading}
         />
-        <aside className="space-y-4">
+        <aside className="space-y-4 lg:self-start lg:sticky lg:top-8">
           <SessionBrief
             role={role}
             interviewType={interviewType}

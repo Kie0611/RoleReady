@@ -27,7 +27,7 @@ interface Props {
 
 export function SessionBrief({ role, interviewType, difficulty, loading }: Props) {
   return (
-    <aside className="h-fit bg-foreground p-5 text-background lg:sticky lg:top-8">
+    <aside className="h-fit bg-foreground p-5 text-background">
       <Kicker className="text-accent">Session brief</Kicker>
 
       <h2 className="mt-3 text-xl font-extrabold leading-tight">

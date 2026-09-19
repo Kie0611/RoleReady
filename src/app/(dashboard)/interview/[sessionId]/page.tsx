@@ -25,5 +25,20 @@ export default async function InterviewPage({
     notFound();
   }
 
-  return <InterviewRoom session={interviewSession} />;
+  const existingMessages = (interviewSession.messages as any[]) ?? [];
+
+  // Only count elapsed time if session is still in progress
+  const elapsedSeconds = interviewSession.durationSeconds ?? (
+    interviewSession.status === "in_progress"
+      ? Math.floor((Date.now() - new Date(interviewSession.createdAt).getTime()) / 1000)
+      : 0
+  );
+
+  return (
+    <InterviewRoom
+      session={interviewSession}
+      initialMessages={existingMessages}
+      initialElapsed={Math.max(0, elapsedSeconds)}
+    />
+  );
 }
