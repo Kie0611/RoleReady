@@ -19,6 +19,7 @@
     "@nanostores/react": "github:ai/react",
     "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^7.0.97",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
