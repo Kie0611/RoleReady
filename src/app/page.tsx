@@ -40,7 +40,7 @@ export default function HomePage() {
               href="/dashboard"
               className="flex items-center gap-2 border border-border px-6 py-3 text-sm font-semibold hover:bg-secondary transition-colors"
             >
-              View demo dashboard
+              View dashboard
             </Link>
           </div>
           <div className="mt-12 grid max-w-xl grid-cols-3 gap-px border border-border bg-border">
@@ -126,16 +126,28 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-border px-5 py-6">
-        <div className="mx-auto flex max-w-7xl items-center justify-end">
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
           {/* <BrandMark /> */}
           <p className=" font-mono text-[10px] uppercase text-muted-foreground">Prepare deliberately.</p>
+
+          <span className="text-border">·</span>
+
+          <p className="font-mono text-[10px] uppercase text-muted-foreground">
+            Built by{" "}
+            <a
+              href="https://github.com/Kie0611"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground hover:underline"
+            >
+              Kean
+            </a>
+          </p>
         </div>
       </footer>
     </main>
   );
 }
-
-// ── Shared sub-components ─────────────────────────────────────────────────────
 
 function Stat({ n, label }: { n: string; label: string }) {
   return (
