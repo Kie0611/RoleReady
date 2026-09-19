@@ -25,8 +25,20 @@ export type Scorecard = z.infer<typeof scorecardSchema>;
 export async function generateScorecard(
   messages: { role: string; content?: string; parts?: { type: string; text?: string }[] }[]
 ) {
-  const transcript = messages
-    .filter((m) => m.role === "user" || m.role === "assistant")
+    const IGNORED_TRIGGERS = [
+      "please begin the interview.",
+      "start the interview with a professional greeting",
+      "please begin the interview",
+    ];
+
+    const transcript = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .filter((m) => {
+        const text = m.parts
+          ? m.parts.filter((p) => p.type === "text").map((p) => p.text ?? "").join("").toLowerCase().trim()
+          : (m.content ?? "").toLowerCase().trim();
+        return !IGNORED_TRIGGERS.some((trigger) => text.startsWith(trigger.toLowerCase()));
+      })
     .map((m) => {
       const text = m.parts
         ? m.parts.filter((p) => p.type === "text").map((p) => p.text ?? "").join("")
@@ -39,14 +51,14 @@ export async function generateScorecard(
     model:  geminiFlash,
     schema: scorecardSchema,
     prompt: `
-You are an expert interview coach. Analyze this interview transcript and generate a detailed, honest scorecard.
-Be specific — this person is preparing for a real interview.
+      You are an expert interview coach. Analyze this interview transcript and generate a detailed, honest scorecard.
+      Be specific — this person is preparing for a real interview.
 
-Transcript:
-${transcript}
+      Transcript:
+      ${transcript}
 
-Score each dimension 0–100. Be honest, not generous.
-For bestAnswer, pick the candidate's strongest answer, show it as-is, then rewrite it to show how it could be improved.
+      Score each dimension 0–100. Be honest, not generous.
+      For bestAnswer, pick the candidate's strongest answer, show it as-is, then rewrite it to show how it could be improved.
     `.trim(),
   });
 

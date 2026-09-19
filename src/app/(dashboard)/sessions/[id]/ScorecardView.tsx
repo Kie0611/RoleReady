@@ -193,7 +193,7 @@ export function ScorecardView({ session }: { session: InterviewSession }) {
               </div>
             </div>
           </div>
-
+          
           {/* Full transcript */}
           <details className="border border-border">
             <summary className="cursor-pointer bg-card px-5 py-3 text-sm font-semibold hover:bg-secondary transition-colors">
@@ -201,7 +201,28 @@ export function ScorecardView({ session }: { session: InterviewSession }) {
             </summary>
             <div className="space-y-4 p-5">
               {(session.messages as any[])
-                .filter((_: any, i: number) => i !== 0)
+                .filter((m: any) => {
+                  const text = m.parts
+                    ? m.parts.filter((p: any) => p.type === "text").map((p: any) => p.text ?? "").join("").toLowerCase().trim()
+                    : (m.content ?? "").toLowerCase().trim();
+                  const IGNORED = [
+                    "please begin the interview",
+                    "start the interview with a professional greeting",
+                  ];
+                  return !IGNORED.some((t) => text.startsWith(t));
+                })
+                .filter((m: any, i: number, arr: any[]) => {
+                  // Deduplicate consecutive identical messages
+                  if (i === 0) return true;
+                  const prev = arr[i - 1];
+                  const prevText = prev.parts
+                    ? prev.parts.filter((p: any) => p.type === "text").map((p: any) => p.text ?? "").join("")
+                    : prev.content ?? "";
+                  const currText = m.parts
+                    ? m.parts.filter((p: any) => p.type === "text").map((p: any) => p.text ?? "").join("")
+                    : m.content ?? "";
+                  return prevText !== currText;
+                })
                 .map((m: any, i: number) => {
                   const isAI = m.role === "assistant";
                   const text = m.parts
