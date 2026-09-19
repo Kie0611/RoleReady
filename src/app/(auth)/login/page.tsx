@@ -44,7 +44,12 @@ export default async function LoginPage() {
 
           {/* Mobile brand */}
           <div className="mb-12 flex items-center gap-3 font-bold lg:hidden">
-            <span className="grid size-9 place-items-center bg-accent font-mono text-lg text-accent-foreground">R</span>
+            <Image
+            src="/icon_no_bg.png"
+            alt="RoleReady logo"
+            width={35}
+            height={35}
+            />
             <span>RoleReady</span>
           </div>
 
