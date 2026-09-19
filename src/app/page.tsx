@@ -10,11 +10,19 @@ export default function HomePage() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between border-b border-border px-5 py-4 lg:px-8">
         <BrandMark />
         <div className="flex items-center gap-2">
-          <Link href="/login" className="px-4 py-2 text-sm font-semibold text-foreground hover:bg-secondary transition-colors">
+          <Link
+            href="/login"
+            className="px-3 py-2 text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
+          >
             Sign in
           </Link>
-          <Link href="/register" className="flex items-center gap-2 bg-foreground px-4 py-2 text-sm font-semibold text-background hover:opacity-90 transition-opacity">
-            Start practicing <ArrowRight className="size-4" />
+          <Link
+            href="/register"
+            className="flex items-center gap-2 bg-foreground px-3 py-2 text-sm font-semibold text-background hover:opacity-90 transition-opacity sm:px-4"
+          >
+            <span className="hidden sm:inline">Start practicing</span>
+            <span className="sm:hidden">Start</span>
+            <ArrowRight className="size-4" />
           </Link>
         </div>
       </nav>
