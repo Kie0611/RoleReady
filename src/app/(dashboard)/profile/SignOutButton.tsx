@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 export function SignOutButton() {
   async function handleSignOut() {
     toast.success("Signing out…");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     await signOut({ callbackUrl: "/login" });
   }
 
