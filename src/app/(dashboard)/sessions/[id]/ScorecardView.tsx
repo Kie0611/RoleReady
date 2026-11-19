@@ -31,11 +31,17 @@ export function ScorecardView({ session }: { session: InterviewSession }) {
         body:    JSON.stringify({ sessionId: session.id }),
       });
 
-      if (!res.ok) throw new Error("Failed to generate scorecard");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(typeof body.error === "string"
+          ? body.error
+          : "Failed to generate scorecard. Please try again.");
+        return;
+      }
 
       const updated = await res.json();
       setScorecard(updated.scorecard as Scorecard);
-    } catch (err) {
+    } catch {
       setError("Failed to generate scorecard. Please try again.");
     } finally {
       setGenerating(false);

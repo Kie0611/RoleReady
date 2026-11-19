@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { geminiFlash } from "./gemini";
+import { AI_REQUEST_TIMEOUT_MS, runWithAiFallback } from "./resilience";
 import { z } from "zod";
 
 export const scorecardSchema = z.object({
@@ -47,10 +47,7 @@ export async function generateScorecard(
     })
     .join("\n\n");
 
-  const { object } = await generateObject({
-    model:  geminiFlash,
-    schema: scorecardSchema,
-    prompt: `
+  const prompt = `
       You are an expert interview coach. Analyze this interview transcript and generate a detailed, honest scorecard.
       Be specific — this person is preparing for a real interview.
 
@@ -59,8 +56,16 @@ export async function generateScorecard(
 
       Score each dimension 0–100. Be honest, not generous.
       For bestAnswer, pick the candidate's strongest answer, show it as-is, then rewrite it to show how it could be improved.
-    `.trim(),
-  });
+    `.trim();
 
-  return object;
+  return runWithAiFallback(async ({ model }) => {
+    const { object } = await generateObject({
+      model,
+      schema: scorecardSchema,
+      prompt,
+      maxRetries: 0,
+      abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+    });
+    return object;
+  });
 }

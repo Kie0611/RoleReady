@@ -1,5 +1,6 @@
-import { streamText, convertToModelMessages, toUIMessageStream, createUIMessageStreamResponse } from "ai";
-import { geminiFlash } from "@/lib/ai/gemini";
+import { convertToModelMessages, toUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { clientAiError, AiOperationError } from "@/lib/ai/resilience";
+import { startInterviewStream } from "@/lib/ai/interview";
 import { buildInterviewSystemPrompt } from "@/lib/ai/prompts";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
@@ -32,24 +33,25 @@ export async function POST(req: Request) {
 
     const modelMessages = await convertToModelMessages(messages ?? []);
 
-    const result = await streamText({
-      model: geminiFlash,
-      system: buildInterviewSystemPrompt({
-        role:           interviewSession.role,
-        company:        interviewSession.company        ?? undefined,
-        jobDescription: interviewSession.jobDescription ?? undefined,
-        interviewType:  interviewSession.interviewType,
-        difficulty:     interviewSession.difficulty,
-      }),
-      messages: modelMessages,
+    const system = buildInterviewSystemPrompt({
+      role:           interviewSession.role,
+      company:        interviewSession.company        ?? undefined,
+      jobDescription: interviewSession.jobDescription ?? undefined,
+      interviewType:  interviewSession.interviewType,
+      difficulty:     interviewSession.difficulty,
     });
 
+    const stream = await startInterviewStream({ system, messages: modelMessages, signal: req.signal });
+
     return createUIMessageStreamResponse({
-      stream: toUIMessageStream({ stream: result.stream }),
+      stream: toUIMessageStream({ stream, onError: (error) => clientAiError(error).error }),
     });
 
   } catch (err) {
-    console.error("[chat route error]", err);
-    return new Response("Internal server error", { status: 500 });
+    const response = clientAiError(err);
+    if (!(err instanceof AiOperationError)) {
+      console.error("[chat route error]", err);
+    }
+    return Response.json({ error: response.error }, { status: response.status });
   }
 }
