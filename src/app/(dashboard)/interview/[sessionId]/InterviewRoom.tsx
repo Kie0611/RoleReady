@@ -2,7 +2,7 @@
 
 import { useChat, type UIMessage } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Square } from "lucide-react";
 import { type InterviewSession } from "@/lib/db/schema";
@@ -30,6 +30,20 @@ function isTriggerMessage(message: UIMessage, index: number): boolean {
   return TRIGGER_PHRASES.some((t) => text === t);
 }
 
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1.5" aria-hidden="true">
+      {[0, 1, 2].map((index) => (
+        <span
+          key={index}
+          className="size-1.5 rounded-full bg-current animate-typing-dot"
+          style={{ animationDelay: `${index * 140}ms` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 interface Props {
   session:         InterviewSession;
   initialMessages: any[];
@@ -39,17 +53,53 @@ interface Props {
 export function InterviewRoom({ session, initialMessages, initialElapsed }: Props) {
   const router         = useRouter();
   const bottomRef      = useRef<HTMLDivElement>(null);
-  const hasInitialized = useRef(false);
   const hasSeeded      = useRef(false);
 
   const [input,         setInput]         = useState("");
   const [ending,        setEnding]        = useState(false);
   const [elapsed,       setElapsed]       = useState(Math.max(0, initialElapsed));
   const [interviewDone, setInterviewDone] = useState(false);
+  const [chatError,     setChatError]     = useState("");
+  const elapsedRef = useRef(Math.max(0, initialElapsed));
 
-  const isResuming = initialMessages.length > 0;
-  
-  const messagesRef = useRef<UIMessage[]>([]);
+  const initialUiMessages: UIMessage[] = initialMessages.map((m: any, i: number) => ({
+    id:    `msg-${i}`,
+    role:  m.role,
+    parts: m.parts ?? [{ type: "text", text: m.content ?? "" }],
+  }));
+  const isResuming = initialUiMessages.some(
+    (message, index) =>
+      message.role === "assistant" ||
+      (message.role === "user" && !isTriggerMessage(message, index)),
+  );
+
+  const messagesRef = useRef<UIMessage[]>(initialUiMessages);
+
+  const persistSessionProgress = useCallback(async ({
+    keepalive = false,
+    includeMessages = true,
+  }: {
+    keepalive?: boolean;
+    includeMessages?: boolean;
+  } = {}) => {
+    if (session.status !== "in_progress") return;
+
+    try {
+      const payload: { durationSeconds: number; messages?: UIMessage[] } = {
+        durationSeconds: elapsedRef.current,
+      };
+      if (includeMessages) payload.messages = messagesRef.current;
+
+      await fetch(`/api/sessions/${session.id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload),
+        keepalive,
+      });
+    } catch {
+      // The page may be closing; the next checkpoint/resume can try again.
+    }
+  }, [session.id, session.status]);
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -57,18 +107,23 @@ export function InterviewRoom({ session, initialMessages, initialElapsed }: Prop
       body: { sessionId: session.id },
     }),
     onFinish: async ({ message }: { message: UIMessage }) => {
-      await fetch(`/api/sessions/${session.id}`, {
-        method:  "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ messages: messagesRef.current }),
-      });
+      setChatError("");
+      await persistSessionProgress();
       if (getMessageText(message).toLowerCase().includes(END_PHRASE)) {
         setInterviewDone(true);
       }
     },
     onError: (error) => {
-      console.error("[useChat error]", error);
-      toast.error("Something went wrong. Please try again.");
+      const safeMessages = [
+        "The AI service is busy. Please try again shortly.",
+        "The AI service is temporarily unavailable. Please try again shortly.",
+        "The AI service is not configured correctly. Please contact support.",
+        "We couldn't complete this AI request. Please try again.",
+      ];
+      const safeMessage = safeMessages.find((message) => error.message.includes(message))
+        ?? "Something went wrong. Please try again.";
+      setChatError(safeMessage);
+      toast.error(safeMessage);
     },
   });
 
@@ -80,34 +135,69 @@ export function InterviewRoom({ session, initialMessages, initialElapsed }: Prop
   const isLoading = status === "streaming" || status === "submitted";
 
   useEffect(() => {
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
-
-    if (initialMessages.length > 0) {
-      setMessages(
-        initialMessages.map((m: any, i: number) => ({
-          id:    `msg-${i}`,
-          role:  m.role,
-          parts: m.parts ?? [{ type: "text", text: m.content ?? "" }],
-        }))
-      );
+    if (isResuming) {
+      setMessages(initialUiMessages);
     } else {
       // New session
+      setMessages([]);
       const t = setTimeout(() => {
-        sendMessage({
-          parts: [{ type: "text", text: "Start the interview with a professional greeting and your first question." }],
-        });
+        if (hasSeeded.current) return;
+        hasSeeded.current = true;
+        setChatError("");
+        sendMessage({ text: "Start the interview with a professional greeting and your first question." });
       }, 500);
       return () => clearTimeout(t);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Timer
+  // Timer: count only while the interview room is visible. Persist the
+  // accumulated duration before navigation, tab switches, or page unloads.
   useEffect(() => {
-    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
+    let timerActive = typeof document === "undefined" || document.visibilityState === "visible";
+
+    const pauseTimer = () => {
+      timerActive = false;
+      // Keep the latest transcript write on the normal response/unmount path;
+      // hidden-tab checkpoints only need to freeze the elapsed duration.
+      void persistSessionProgress({ keepalive: true, includeMessages: false });
+    };
+
+    const resumeTimer = () => {
+      timerActive = true;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") pauseTimer();
+      else resumeTimer();
+    };
+
+    const handlePageHide = () => pauseTimer();
+    const handlePageShow = () => resumeTimer();
+
+    const t = window.setInterval(() => {
+      if (!timerActive || document.visibilityState !== "visible") return;
+
+      setElapsed((current) => {
+        const next = current + 1;
+        elapsedRef.current = next;
+        return next;
+      });
+    }, 1000);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      timerActive = false;
+      window.clearInterval(t);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
+      void persistSessionProgress({ keepalive: true });
+    };
+  }, [persistSessionProgress]);
 
   // Auto-scroll
   useEffect(() => {
@@ -121,7 +211,7 @@ export function InterviewRoom({ session, initialMessages, initialElapsed }: Prop
   };
 
   const assistantMessages = messages.filter((m: UIMessage) => m.role === "assistant");
-  const questionCount     = Math.min(assistantMessages.length + 1, 8);
+  const questionCount     = Math.min(Math.max(assistantMessages.length, 1), 8);
   const progress          = Math.round((questionCount / 8) * 100);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -133,7 +223,8 @@ export function InterviewRoom({ session, initialMessages, initialElapsed }: Prop
 
   function handleSend() {
     if (!input.trim() || isLoading || interviewDone) return;
-    sendMessage({ parts: [{ type: "text", text: input.trim() }] });
+    setChatError("");
+    sendMessage({ text: input.trim() });
     setInput("");
   }
 
@@ -160,6 +251,11 @@ export function InterviewRoom({ session, initialMessages, initialElapsed }: Prop
   );
 
   const hasAIResponse = visibleMessages.some((m: UIMessage) => m.role === "assistant");
+  const latestVisibleMessage = visibleMessages[visibleMessages.length - 1];
+  const showTypingIndicator =
+    !chatError &&
+    ((!hasAIResponse && !isResuming) ||
+      (isLoading && latestVisibleMessage?.role !== "assistant"));
 
   // Disable input while waiting for first AI message on new sessions
   const inputDisabled = isLoading || interviewDone || (!isResuming && !hasAIResponse);
@@ -195,12 +291,16 @@ export function InterviewRoom({ session, initialMessages, initialElapsed }: Prop
       {/* Messages */}
       <section className="flex-1 space-y-6 overflow-auto py-8">
 
-        {!hasAIResponse && (
-          <div className="flex items-center gap-3">
-            <div className="h-4 w-1.5 animate-blink bg-foreground" />
-            <span className="font-mono text-xs text-muted-foreground">
-              Interviewer is preparing your first question…
-            </span>
+        {!hasAIResponse && chatError && (
+          <div className="max-w-xl border border-destructive/40 bg-destructive/10 p-5">
+            <Kicker className="text-destructive">Could not start interview</Kicker>
+            <p className="mt-2 text-sm leading-relaxed">{chatError}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 bg-foreground px-4 py-2 text-sm font-semibold text-background hover:opacity-90 transition-opacity"
+            >
+              Try again
+            </button>
           </div>
         )}
 
@@ -222,13 +322,30 @@ export function InterviewRoom({ session, initialMessages, initialElapsed }: Prop
               <Kicker className={isAI ? "text-warning" : "text-info"}>
                 {isAI ? "Interviewer" : "You"}
               </Kicker>
-              <p className="mt-2 leading-relaxed">{text}</p>
-              {isStreaming && (
+              {text ? <p className="mt-2 leading-relaxed">{text}</p> : isStreaming ? (
+                <div className="mt-3 text-warning">
+                  <TypingDots />
+                </div>
+              ) : null}
+              {isStreaming && text && (
                 <span className="mt-3 inline-block h-4 w-1.5 animate-blink bg-foreground" />
               )}
             </div>
           );
         })}
+
+        {showTypingIndicator && (
+          <div
+            className="max-w-2xl border-l-2 border-accent bg-card p-5"
+            role="status"
+            aria-label="Interviewer is typing"
+          >
+            <Kicker className="text-warning">Interviewer</Kicker>
+            <div className="mt-3 text-warning">
+              <TypingDots />
+            </div>
+          </div>
+        )}
 
         {interviewDone && (
           <div className="border border-accent/40 bg-accent/10 p-5">
