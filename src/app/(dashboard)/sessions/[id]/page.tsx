@@ -25,5 +25,11 @@ export default async function SessionDetailPage({
     notFound();
   }
 
+  // An active session is resumable, not a scorecard. This also protects
+  // bookmarked/stale links from accidentally generating a partial scorecard.
+  if (interviewSession.status === "in_progress") {
+    redirect(`/interview/${id}`);
+  }
+
   return <ScorecardView session={interviewSession} />;
 }

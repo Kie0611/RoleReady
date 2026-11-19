@@ -83,11 +83,8 @@ function SessionCard({ session }: { session: InterviewSession }) {
     ? `${Math.floor(session.durationSeconds / 60)} min`
     : null;
 
-  return (
-    <Link
-      href={`/sessions/${session.id}`}
-      className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-border py-5 transition-colors hover:bg-card md:px-3"
-    >
+  const cardClassName = "grid grid-cols-[1fr_auto] items-center gap-4 border-b border-border py-5 transition-colors hover:bg-card md:px-3";
+  const details = (
       <div>
         <p className="font-semibold">{session.role}</p>
         <p className="mt-1 font-mono text-[9px] uppercase text-muted-foreground">
@@ -98,15 +95,31 @@ function SessionCard({ session }: { session: InterviewSession }) {
           <p className="mt-1 text-xs text-muted-foreground">{session.company}</p>
         )}
       </div>
+  );
+
+  if (!isComplete) {
+    return (
+      <div className={cardClassName}>
+        {details}
+        <Link
+          href={`/interview/${session.id}`}
+          className="inline-flex items-center gap-2 bg-info px-3 py-2 font-mono text-[10px] font-bold uppercase text-info-foreground hover:opacity-90 transition-opacity"
+        >
+          Resume <ArrowRight className="size-3.5" />
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/sessions/${session.id}`}
+      className={cardClassName}
+    >
+      {details}
       <div className="text-right">
-        {isComplete ? (
-          <>
-            <p className={`text-2xl font-extrabold ${scoreColor}`}>{score}</p>
-            <p className="font-mono text-[9px] text-muted-foreground">/ 100</p>
-          </>
-        ) : (
-          <span className="font-mono text-[9px] uppercase text-info">In progress</span>
-        )}
+        <p className={`text-2xl font-extrabold ${scoreColor}`}>{score}</p>
+        <p className="font-mono text-[9px] text-muted-foreground">/ 100</p>
       </div>
     </Link>
   );

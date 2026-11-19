@@ -21,6 +21,7 @@ export async function POST(req: NextRequest ) {
     .insert(interviewSessions)
     .values({
       userId: session.user.id,
+      durationSeconds: 0,
       role,
       company,
       jobDescription,

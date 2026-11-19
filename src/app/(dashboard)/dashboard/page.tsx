@@ -174,9 +174,13 @@ function ProgressChart({ sessions }: { sessions: InterviewSession[] }) {
 
 function SessionRow({ session }: { session: InterviewSession }) {
   const score = session.overallScore ?? 0;
-  const scoreColor =
-    score >= 78 ? "bg-success" :
-    score >= 65 ? "bg-accent"  : "bg-destructive";
+  const scoreColor = session.status === "in_progress"
+    ? "bg-info"
+    : score >= 78
+      ? "bg-success"
+      : score >= 65
+        ? "bg-accent"
+        : "bg-destructive";
 
   const statusLabel =
     session.status === "completed"   ? score >= 78 ? "Strong" : score >= 65 ? "Review" : "Needs work" :
@@ -192,9 +196,13 @@ function SessionRow({ session }: { session: InterviewSession }) {
     month: "short", day: "numeric",
   });
 
+  const href = session.status === "in_progress"
+    ? `/interview/${session.id}`
+    : `/sessions/${session.id}`;
+
   return (
     <Link
-      href={`/sessions/${session.id}`}
+      href={href}
       className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 border-b border-border py-4 transition-colors hover:bg-card md:px-3"
     >
       <span className={`size-2.5 ${scoreColor}`} />
@@ -207,8 +215,8 @@ function SessionRow({ session }: { session: InterviewSession }) {
       <span className={`inline-flex border px-2 py-1 font-mono text-[9px] uppercase ${statusColor}`}>
         {statusLabel}
       </span>
-      <span className="font-mono text-lg font-bold">
-        {session.status === "completed" ? score : "—"}
+      <span className={`font-mono text-[10px] font-bold uppercase ${session.status === "in_progress" ? "text-info" : "text-foreground"}`}>
+        {session.status === "completed" ? score : session.status === "in_progress" ? "Resume" : "—"}
       </span>
     </Link>
   );

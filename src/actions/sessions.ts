@@ -19,6 +19,7 @@ export async function createSessionAction(data: {
     .insert(interviewSessions)
     .values({
       userId: session.user.id,
+      durationSeconds: 0,
       ...data
     })
     .returning();
